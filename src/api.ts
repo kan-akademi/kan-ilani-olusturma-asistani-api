@@ -85,7 +85,6 @@ router.post('/counter', (req, res) => {
 
   const data = readCounter();
 
-  // Hash değeri farklı ise counter artır
   if (data.lastHash !== hash) {
     data.counter++;
     data.lastHash = hash;
@@ -105,6 +104,16 @@ router.post('/counter', (req, res) => {
     });
   }
 });
+
+// Automatic cleanup for expired rate limit entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap.entries()) {
+    if (now - entry.timestamp > RATE_LIMIT_WINDOW) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, RATE_LIMIT_WINDOW);
 
 const PORT = parseInt(process.env.PORT || '3000');
 app.listen(PORT, () => {
