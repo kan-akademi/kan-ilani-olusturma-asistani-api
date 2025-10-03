@@ -5,11 +5,32 @@ import * as path from 'path';
 const app = new Server();
 const router = app.getRouter();
 
+const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 dakika
+const RATE_LIMIT_MAX = 10; // 1 dakika içinde maksimum 10 istek
+
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, './data');
 const COUNTER_FILE = path.join(DATA_DIR, 'counter.txt');
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+
+  if (!entry || now - entry.timestamp > RATE_LIMIT_WINDOW) {
+    rateLimitMap.set(ip, { count: 1, timestamp: now });
+    return false;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return true;
+  }
+
+  entry.count++;
+  return false;
 }
 
 function readCounter(): { counter: number; lastHash: string } {
@@ -55,9 +76,17 @@ router.post('/counter', (req, res) => {
     return;
   }
 
+  // Extract only the first IP from x-forwarded-for header
+  const forwardedFor = req.headers['x-forwarded-for'] as string;
+  const ip = forwardedFor?.split(',')[0]?.trim() || req.socket.remoteAddress || '';
+
+  if (isRateLimited(ip)) {
+    res.json({ error: 'Too many requests. Please try again later.' }, 429);
+    return;
+  }
+
   const data = readCounter();
 
-  // Hash değeri farklı ise counter artır
   if (data.lastHash !== hash) {
     data.counter++;
     data.lastHash = hash;
@@ -77,6 +106,16 @@ router.post('/counter', (req, res) => {
     });
   }
 });
+
+// Automatic cleanup for expired rate limit entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of rateLimitMap.entries()) {
+    if (now - entry.timestamp > RATE_LIMIT_WINDOW) {
+      rateLimitMap.delete(ip);
+    }
+  }
+}, RATE_LIMIT_WINDOW);
 
 const PORT = parseInt(process.env.PORT || '3000');
 app.listen(PORT, () => {
