@@ -1,16 +1,30 @@
 {
   "name": "kan-ilani-olusturma-asistani-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "api.js",
+  "description": "Kan İlanı Oluşturma Asistanı API - Counter Service",
+  "main": "dist/api.js",
   "scripts": {
     "dev": "tsx watch src/api.ts",
     "build": "tsc",
-    "start": "node dist/api.js"
+    "start": "node dist/api.js",
+    "lint": "echo 'No linter configured yet'",
+    "test": "echo 'No tests configured yet'"
   },
+  "keywords": [
+    "blood-donation",
+    "counter",
+    "typescript",
+    "api"
+  ],
+  "author": "Kan Akademi",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0",
     "tsx": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
