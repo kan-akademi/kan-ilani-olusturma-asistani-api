@@ -24,19 +24,6 @@ async function initializeDataDir() {
   }
 }
 
-// Dosya kilitleme için mutex pattern
-const lockMap = new Map<string, Promise<void>>();
-
-async function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
-  while (lockMap.has(key)) {
-    await lockMap.get(key);
-  }
-  
-  const promise = fn().finally(() => lockMap.delete(key));
-  lockMap.set(key, promise.then(() => {}));
-  return promise;
-}
-
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
@@ -60,7 +47,7 @@ function isRateLimited(ip: string): boolean {
 async function readCounter(): Promise<{ counter: number; lastHash: string }> {
   try {
     const fileExists = await fs.access(COUNTER_FILE).then(() => true).catch(() => false);
-    
+
     if (!fileExists) {
       const initialData = { counter: 0, lastHash: '' };
       await fs.writeFile(COUNTER_FILE, JSON.stringify(initialData, null, 2));
@@ -92,20 +79,20 @@ async function writeCounter(counter: number, lastHash: string): Promise<void> {
 function getClientIp(req: Request): string {
   const forwardedFor = req.headers['x-forwarded-for'] as string;
   const cloudflareIp = req.headers['cf-connecting-ip'] as string;
-  
+
   // Cloudflare kullanıyorsanız
   if (cloudflareIp) {
     Logger.info('Client IP detected from Cloudflare', { ip: cloudflareIp });
     return cloudflareIp;
   }
-  
+
   // Proxy ardından
   if (forwardedFor) {
     const ip = forwardedFor.split(',')[0]?.trim();
     Logger.info('Client IP detected from X-Forwarded-For', { ip });
     return ip;
   }
-  
+
   const ip = req.socket.remoteAddress || 'unknown';
   Logger.info('Client IP detected from socket', { ip });
   return ip;
@@ -133,57 +120,57 @@ router.get('/counter', async (req, res) => {
 
 router.post('/counter', async (req, res) => {
   try {
-    await withLock('counter', async () => {
-      const { hash } = req.body;
-      const ip = getClientIp(req);
-      
-      Logger.info('POST /counter endpoint accessed', { ip, hasHash: !!hash });
-      
-      if (!hash) {
-        Logger.info('Missing hash in request body', { ip });
-        res.json({ error: 'Hash value is required' }, 400);
-        return;
-      }
+    const { hash } = req.body;
+    const ip = getClientIp(req);
 
-      if (isRateLimited(ip)) {
-        Logger.info('Rate limit triggered', { ip });
-        res.json({ error: 'Too many requests. Please try again later.' }, 429);
-        return;
-      }
+    Logger.info('POST /counter endpoint accessed', { ip, hasHash: !!hash });
 
-      const data = await readCounter();
+    if (!hash) {
+      Logger.info('Missing hash in request body', { ip });
+      res.json({ error: 'Hash value is required' }, 400);
+      return;
+    }
 
-      if (data.lastHash !== hash) {
-        data.counter++;
-        data.lastHash = hash;
+    if (isRateLimited(ip)) {
+      Logger.info('Rate limit triggered', { ip });
+      res.json({ error: 'Too many requests. Please try again later.' }, 429);
+      return;
+    }
 
-        await writeCounter(data.counter, data.lastHash);
+    const data = await readCounter();
 
-        Logger.info('Counter incremented', { 
-          ip, 
-          newCounter: data.counter, 
-          hashPrefix: hash.substring(0, 8) + '...' 
-        });
+    if (data.lastHash !== hash) {
+      data.counter++;
+      data.lastHash = hash;
 
-        res.json({
-          message: 'Counter incremented',
-          counter: data.counter,
-          lastHash: data.lastHash
-        });
-      } else {
-        Logger.info('Duplicate hash detected, counter not changed', { 
-          ip, 
-          counter: data.counter,
-          hashPrefix: hash.substring(0, 8) + '...'
-        });
-        
-        res.json({
-          message: 'Hash already exists, counter not changed',
-          counter: data.counter,
-          lastHash: data.lastHash
-        });
-      }
-    });
+      await writeCounter(data.counter, data.lastHash);
+
+      Logger.info('Counter incremented', {
+        ip,
+        newCounter: data.counter,
+        hashPrefix: hash.substring(0, 8) + '...'
+      });
+
+      res.json({
+        message: 'Counter incremented',
+        counter: data.counter,
+        lastHash: data.lastHash,
+        wasIncremented: true
+      });
+    } else {
+      Logger.info('Duplicate hash detected, counter not changed', {
+        ip,
+        counter: data.counter,
+        hashPrefix: hash.substring(0, 8) + '...'
+      });
+
+      res.json({
+        message: 'Hash already exists, counter not changed',
+        counter: data.counter,
+        lastHash: data.lastHash,
+        wasIncremented: false
+      });
+    }
   } catch (error) {
     Logger.error('Error in POST /counter', error as Error);
     res.json({ error: 'Failed to update counter' }, 500);
@@ -193,7 +180,7 @@ router.post('/counter', async (req, res) => {
 // Health check endpoint
 router.get('/health', (req, res) => {
   Logger.info('Health check endpoint accessed');
-  res.json({ 
+  res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
@@ -204,14 +191,14 @@ router.get('/health', (req, res) => {
 setInterval(() => {
   const now = Date.now();
   let cleanedCount = 0;
-  
+
   for (const [ip, entry] of rateLimitMap.entries()) {
     if (now - entry.timestamp > RATE_LIMIT_WINDOW) {
       rateLimitMap.delete(ip);
       cleanedCount++;
     }
   }
-  
+
   if (cleanedCount > 0) {
     Logger.info('Rate limit cleanup completed', { cleanedEntries: cleanedCount });
   }
@@ -234,9 +221,9 @@ const PORT = parseInt(process.env.PORT || '3000');
 async function startServer() {
   try {
     await initializeDataDir();
-    
+
     app.listen(PORT, () => {
-      Logger.info('Server started successfully', { 
+      Logger.info('Server started successfully', {
         port: PORT,
         environment: process.env.NODE_ENV || 'development',
         dataDir: DATA_DIR

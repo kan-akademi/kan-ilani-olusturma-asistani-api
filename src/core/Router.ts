@@ -1,27 +1,27 @@
-import { Route, Request, Response } from '../types';
+import { Route, Request, Response, RouteHandler } from '../types';
 import { Logger } from './Logger';
 
 export class Router {
   private routes: Route[] = [];
 
-  private addRoute(method: string, path: string, handler: (req: Request, res: Response) => void) {
+  private addRoute(method: string, path: string, handler: RouteHandler) {
     this.routes.push({ method, path, handler });
     Logger.debug('Route registered', { method, path });
   }
 
-  get(path: string, handler: (req: Request, res: Response) => void) {
+  get(path: string, handler: RouteHandler) {
     this.addRoute('GET', path, handler);
   }
 
-  post(path: string, handler: (req: Request, res: Response) => void) {
+  post(path: string, handler: RouteHandler) {
     this.addRoute('POST', path, handler);
   }
 
-  put(path: string, handler: (req: Request, res: Response) => void) {
+  put(path: string, handler: RouteHandler) {
     this.addRoute('PUT', path, handler);
   }
 
-  delete(path: string, handler: (req: Request, res: Response) => void) {
+  delete(path: string, handler: RouteHandler) {
     this.addRoute('DELETE', path, handler);
   }
 
