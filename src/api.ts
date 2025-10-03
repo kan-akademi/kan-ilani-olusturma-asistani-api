@@ -30,7 +30,6 @@ function isRateLimited(ip: string): boolean {
   }
 
   entry.count++;
-  rateLimitMap.set(ip, entry);
   return false;
 }
 
