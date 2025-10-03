@@ -1,10 +1,12 @@
 import { Route, Request, Response } from '../types';
+import { Logger } from './Logger';
 
 export class Router {
   private routes: Route[] = [];
 
   private addRoute(method: string, path: string, handler: (req: Request, res: Response) => void) {
     this.routes.push({ method, path, handler });
+    Logger.debug('Route registered', { method, path });
   }
 
   get(path: string, handler: (req: Request, res: Response) => void) {
@@ -51,40 +53,79 @@ export class Router {
   }
 
   async handle(req: Request, res: Response) {
-    // WHATWG URL API kullanımı
-    const baseURL = `http://${req.headers.host || 'localhost'}`;
-    const parsedUrl = new URL(req.url || '/', baseURL);
-    const pathname = parsedUrl.pathname;
+    const startTime = Date.now();
+    
+    try {
+      // WHATWG URL API kullanımı
+      const baseURL = `http://${req.headers.host || 'localhost'}`;
+      const parsedUrl = new URL(req.url || '/', baseURL);
+      const pathname = parsedUrl.pathname;
 
-    // Query parametrelerini object'e çevir
-    const query: Record<string, string> = {};
-    parsedUrl.searchParams.forEach((value, key) => {
-      query[key] = value;
-    });
-    req.query = query;
-
-    const match = this.matchRoute(req.method || 'GET', pathname);
-
-    if (!match) {
-      res.json({ error: 'Route not found' }, 404);
-      return;
-    }
-
-    req.params = match.params;
-
-    if (req.method === 'POST' || req.method === 'PUT') {
-      let body = '';
-      req.on('data', chunk => body += chunk.toString());
-      req.on('end', async () => {
-        try {
-          req.body = JSON.parse(body);
-        } catch (e) {
-          req.body = body;
-        }
-        await match.route.handler(req, res);
+      Logger.info('Incoming request', { 
+        method: req.method, 
+        path: pathname,
+        ip: req.socket.remoteAddress 
       });
-    } else {
-      await match.route.handler(req, res);
+
+      // Query parametrelerini object'e çevir
+      const query: Record<string, string> = {};
+      parsedUrl.searchParams.forEach((value, key) => {
+        query[key] = value;
+      });
+      req.query = query;
+
+      const match = this.matchRoute(req.method || 'GET', pathname);
+
+      if (!match) {
+        Logger.warn('Route not found', { method: req.method, path: pathname });
+        res.json({ error: 'Route not found' }, 404);
+        return;
+      }
+
+      req.params = match.params;
+
+      if (req.method === 'POST' || req.method === 'PUT') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', async () => {
+          try {
+            req.body = JSON.parse(body);
+          } catch (e) {
+            req.body = body;
+          }
+          
+          try {
+            await match.route.handler(req, res);
+            const duration = Date.now() - startTime;
+            Logger.info('Request completed', { 
+              method: req.method, 
+              path: pathname, 
+              duration: `${duration}ms`,
+              statusCode: res.statusCode
+            });
+          } catch (error) {
+            Logger.error('Handler error', error as Error, { method: req.method, path: pathname });
+            res.json({ error: 'Internal server error' }, 500);
+          }
+        });
+      } else {
+        try {
+          await match.route.handler(req, res);
+          const duration = Date.now() - startTime;
+          Logger.info('Request completed', { 
+            method: req.method, 
+            path: pathname, 
+            duration: `${duration}ms`,
+            statusCode: res.statusCode
+          });
+        } catch (error) {
+          Logger.error('Handler error', error as Error, { method: req.method, path: pathname });
+          res.json({ error: 'Internal server error' }, 500);
+        }
+      }
+    } catch (error) {
+      Logger.error('Router error', error as Error);
+      res.json({ error: 'Internal server error' }, 500);
     }
   }
 }
