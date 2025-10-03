@@ -77,7 +77,10 @@ router.post('/counter', (req, res) => {
     return;
   }
 
-  const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
+  // Extract only the first IP from x-forwarded-for header
+  const forwardedFor = req.headers['x-forwarded-for'] as string;
+  const ip = forwardedFor?.split(',')[0]?.trim() || req.socket.remoteAddress || '';
+
   if (isRateLimited(ip)) {
     res.json({ error: 'Too many requests. Please try again later.' }, 429);
     return;
