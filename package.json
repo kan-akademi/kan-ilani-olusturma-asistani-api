@@ -18,11 +18,14 @@
   ],
   "author": "Kan Akademi",
   "license": "SEE LICENSE IN LICENSE.md",
-  "dependencies": {},
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  },
   "devDependencies": {
+    "@types/dotenv": "^6.1.1",
     "@types/node": "^20.0.0",
-    "typescript": "^5.0.0",
-    "tsx": "^4.0.0"
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
