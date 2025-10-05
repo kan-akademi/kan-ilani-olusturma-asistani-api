@@ -1,9 +1,13 @@
 import { IncomingMessage, ServerResponse } from 'http';
 
+export type AsyncHandler = (req: Request, res: Response) => Promise<void>;
+export type SyncHandler = (req: Request, res: Response) => void;
+export type RouteHandler = AsyncHandler | SyncHandler;
+
 export interface Route {
   method: string;
   path: string;
-  handler: (req: Request, res: Response) => void | Promise<void>;
+  handler: RouteHandler;
 }
 
 export interface Request extends IncomingMessage {

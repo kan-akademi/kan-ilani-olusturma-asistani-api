@@ -1,6 +1,7 @@
 import http, { IncomingMessage, ServerResponse } from 'http';
 import { Router } from './Router';
 import { Request, Response } from '../types';
+import { Logger } from './Logger';
 
 export class Server {
   private router: Router;
@@ -25,11 +26,19 @@ export class Server {
       response.end(data);
     };
 
-    response.setHeader('Access-Control-Allow-Origin', '*');
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['*'];
+    const origin = req.headers.origin || '';
+
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      response.setHeader('Access-Control-Allow-Origin', origin || '*');
+      Logger.debug('CORS headers set', { origin });
+    }
+
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (request.method === 'OPTIONS') {
+      Logger.debug('OPTIONS request handled');
       response.writeHead(200);
       response.end();
       return;
@@ -40,6 +49,7 @@ export class Server {
 
   use(router: Router) {
     this.router = router;
+    Logger.info('Router attached to server');
   }
 
   listen(port: number, callback?: () => void) {
