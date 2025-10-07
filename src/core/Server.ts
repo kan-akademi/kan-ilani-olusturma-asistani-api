@@ -2,6 +2,9 @@ import http, { IncomingMessage, ServerResponse } from 'http';
 import { Router } from './Router';
 import { Request, Response } from '../types';
 import { Logger } from './Logger';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export class Server {
   private router: Router;
@@ -41,7 +44,7 @@ export class Server {
       Logger.debug('OPTIONS request handled');
       response.writeHead(200);
       response.end();
-      return;
+      return; // Prevent further handling
     }
 
     this.router.handle(request, response);
