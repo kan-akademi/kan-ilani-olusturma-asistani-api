@@ -44,6 +44,7 @@ export class Server {
       Logger.debug('OPTIONS request handled');
       response.writeHead(200);
       response.end();
+      return; // Prevent further handling
     }
 
     this.router.handle(request, response);
