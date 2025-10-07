@@ -13,7 +13,7 @@ services:
       - PORT=3000
       - NODE_ENV=production
       - DATA_DIR=/app/data
-      - ALLOWED_ORIGINS=https://kanakademi.com.tr,http://localhost:5173
+      - ALLOWED_ORIGINS=https://kanakademi.com.tr/kan-ilani-olusturma-asistani/,http://localhost:5173
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
