@@ -1,0 +1,9 @@
+[package]
+name = "kan-ilani-olusturma-asistani-api"
+version = "1.0.0"
+
+[dependencies]
+"wasmer/nodejs" = "*"
+
+[app]
+command = "node dist/api.js"
