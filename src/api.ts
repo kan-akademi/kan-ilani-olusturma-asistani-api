@@ -216,14 +216,16 @@ process.on('SIGINT', () => {
 });
 
 // Başlangıç
-const PORT = parseInt(process.env.PORT || '3000');
+const PORT = parseInt(process.env.PORT || '3000', 10);
+const HOST = process.env.HOST || '0.0.0.0';
 
 async function startServer() {
   try {
     await initializeDataDir();
 
-    app.listen(PORT, () => {
+    app.listen(PORT, HOST, () => {
       Logger.info('Server started successfully', {
+        host: HOST,
         port: PORT,
         environment: process.env.NODE_ENV || 'development',
         dataDir: DATA_DIR

@@ -55,8 +55,8 @@ export class Server {
     Logger.info('Router attached to server');
   }
 
-  listen(port: number, callback?: () => void) {
-    this.server.listen(port, callback);
+  listen(port: number, host: string = '0.0.0.0', callback?: () => void) {
+    this.server.listen(port, host, callback);
   }
 
   getRouter() {
