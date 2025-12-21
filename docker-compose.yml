@@ -13,7 +13,7 @@ services:
       - PORT=3000
       - NODE_ENV=production
       - DATA_DIR=/app/data
-      - ALLOWED_ORIGINS=https://kanakademi.com.tr/kan-ilani-olusturma-asistani/,http://localhost:5173
+      - ALLOWED_ORIGINS=https://kanakademi.com.tr,https://kanakademi.com.tr/kan-ilani-olusturma-asistani/,http://localhost:5173
       - COUNTER_DEFAULT_START=84
     restart: unless-stopped
     healthcheck:
