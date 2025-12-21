@@ -39,7 +39,7 @@ EXPOSE 3000
 
 # Environment variable
 ENV DATA_DIR=/app/data
-ENV ALLOWED_ORIGINS=https://kanakademi.com.tr/kan-ilani-olusturma-asistani/,http://localhost:5173
+ENV ALLOWED_ORIGINS=https://kanakademi.com.tr,https://kanakademi.com.tr/kan-ilani-olusturma-asistani/,http://localhost:5173
 ENV COUNTER_DEFAULT_START=84
 
 # Health check
