@@ -49,7 +49,8 @@ async function readCounter(): Promise<{ counter: number; lastHash: string }> {
     const fileExists = await fs.access(COUNTER_FILE).then(() => true).catch(() => false);
 
     if (!fileExists) {
-      const initialData = { counter: 0, lastHash: '' };
+      const initialCounter = parseInt(process.env.COUNTER_DEFAULT_START || '0', 10);
+      const initialData = { counter: initialCounter, lastHash: '' };
       await fs.writeFile(COUNTER_FILE, JSON.stringify(initialData, null, 2));
       Logger.info('Counter file created with initial data');
       return initialData;
@@ -107,7 +108,16 @@ router.get('/counter', async (req, res) => {
   try {
     Logger.info('GET /counter endpoint accessed');
     const data = await readCounter();
-
+    
+    const counterValue = data.counter;
+    const defaultCounterStart = parseInt(process.env.COUNTER_DEFAULT_START || '0', 10);
+    
+    if (counterValue < defaultCounterStart) {
+      Logger.info('Counter value below default start, resetting', { counter: counterValue, defaultCounterStart });
+      await writeCounter(defaultCounterStart, data.lastHash);
+      data.counter = defaultCounterStart;
+    }
+    
     res.json({
       counter: data.counter,
       lastHash: data.lastHash
