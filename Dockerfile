@@ -37,11 +37,6 @@ VOLUME ["/app/data"]
 # Port
 EXPOSE 3000
 
-# Environment variable
-ENV DATA_DIR=/app/data
-ENV ALLOWED_ORIGINS=https://kanakademi.com.tr,https://kanakademi.com.tr/kan-ilani-olusturma-asistani/,http://localhost:5173
-ENV COUNTER_DEFAULT_START=84
-
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
